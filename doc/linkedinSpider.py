@@ -375,7 +375,7 @@ def crawl(url, s):
 
 
 if __name__ == '__main__':
-    s = login(laccount='a412327591@gmai.com', lpassword='88503639')  # 测试账号
+    s = login(laccount='*********', lpassword='**********')  # 测试账号
     company_name = input('Input the company you want to crawl:')
     maxpage = 50  # 抓取前50页百度搜索结果，百度搜索最多显示76页
 
