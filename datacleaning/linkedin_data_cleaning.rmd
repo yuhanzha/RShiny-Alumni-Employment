@@ -1,0 +1,383 @@
+---
+title: "linkedin data cleaning"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+linkedin_data <- NULL
+for (f in dir('../linkedin/',full.names = T)){
+  if(endsWith(f,'.csv')){
+    cat(f,'\n')
+    linkedin_data <- rbind(linkedin_data,
+                           read.csv(f,sep='\t',header=F,colClasses="character"))
+  }
+}
+linkedin_data <- linkedin_data[,-37]
+colnames(linkedin_data) <- c('url', 'lastName', 'firstName', 'currentTitle', 
+                             'currentLocation', 'connectionCounts', 
+                             'edu1School','edu1StartDate','edu1EndDate','edu1Field','edu1Degree',
+                             'edu2School','edu2StartDate','edu2EndDate','edu2Field','edu2Degree',
+                             'edu3School','edu3StartDate','edu3EndDate','edu3Field','edu3Degree',
+                             'job1Company','job1StartDate','job1EndDate','job1Title','job1Location',
+                             'job2Company','job2StartDate','job2EndDate','job2Title','job2Location',
+                             'job3Company','job3StartDate','job3EndDate','job3Title','job3Location')
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+# grepl('columbia', tolower(linkedin_data$edu1School)) |
+#   grepl('columbia',tolower(linkedin_data$edu2School)) |
+#   grepl('columbia',tolower(linkedin_data$edu3School)) &
+#   grepl('chicago',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('chicago',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('chicago',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('carolina',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('carolina',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('carolina',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('british',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('british',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('british',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('southern',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('southern',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('southern',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) &
+#   grepl('missouri',tolower(linkedin_data$edu1School,invert=TRUE)) 
+
+columbia_data <- filter(linkedin_data,grepl('columbia', tolower(linkedin_data$edu1School)) |
+                          grepl('columbia',tolower(linkedin_data$edu2School)) |
+                          grepl('columbia',tolower(linkedin_data$edu3School)))
+
+education_data <- NULL
+for (i in 1:3){
+  col_idx <- 1:ncol(columbia_data)
+  edu_idx <- 7:21
+  oneEdu_idx <- (7+5*(i-1)):(7+5*i-1)
+  idx <- setdiff(col_idx, setdiff(edu_idx,oneEdu_idx))
+  temp <- columbia_data[,idx]
+  colnames(temp)[7:11] <- c('eduSchool','eduStartDate','eduEndDate','eduField','eduDegree')
+  education_data <- rbind(education_data, temp)
+  #print(colnames(education_data))
+}
+education_data <- education_data[!is.na(education_data$eduSchool),]
+
+CU_data <- filter(education_data,
+                         grepl('columbia',tolower(education_data$eduSchool)) &
+                         !grepl('chicago|british|carolina|missouri|southern|greene|district|international|river|itt|howard|heights|paris|secondary|london|area|california|denver|lincoln|allendale|lower|prep|high|washington|reid|leadership', tolower(education_data$eduSchool)) )
+
+unique(as.character(CU_data$eduSchool))
+```
+
+```{r}
+# get the education field we interetsed in
+custat <- filter(CU_data,grepl('statistics',tolower(CU_data$eduField)))
+cucs <- filter(CU_data,grepl('computer science',tolower(CU_data$eduField)))
+cuee <- filter(CU_data,grepl('ee|electrical',tolower(CU_data$eduField)))
+cuor <- filter(CU_data,grepl('or|operation',tolower(CU_data$eduField)))
+cuds <- filter(CU_data,grepl('data science',tolower(CU_data$eduField)))
+```
+
+```{r}
+# find the MA in statistics
+custat <- custat[custat$job1Company!=''&!is.na(custat$job1Company),]
+custatma <- filter(custat,grepl('ma|m.a|master',tolower(custat$eduDegree)))
+custatma <- filter(custatma,!grepl('ms|Science',tolower(custatma$eduDegree)))
+custatma <- filter(custatma,!grepl('math|applied|bio|economiics|marketing|psychology',tolower(custatma$eduField)))
+custatma2012 <- custatma[custatma$eduStartDate>=2012,]
+custatma2012 <- custatma2012[!is.na(custatma2012$url),]
+
+unique(as.character(custatma2012$eduField))
+```
+
+```{r}
+# clean the stat data and unified the data
+# statistics - 2
+dat <- custatma2012
+dat <- unique(dat)
+
+# Filter the first job/intern in their graduation year
+dat[which(dat$job1EndDate == 'present'),'job1EndDate'] <- 2019
+dat[which(dat$job2EndDate == 'present'),'job2EndDate'] <- 2019
+dat[which(dat$job3EndDate == 'present'),'job3EndDate'] <- 2019
+
+dat$col <- NA
+dat[which(as.numeric(as.vector(dat$eduEndDate)) <= as.numeric(as.vector(dat$job3StartDate))),'col'] <- 3
+dat[which(as.numeric(as.vector(dat$eduEndDate)) <= as.numeric(as.vector(dat$job2StartDate))),'col'] <- 2
+dat[which(as.numeric(as.vector(dat$eduEndDate)) <= as.numeric(as.vector(dat$job1StartDate))),'col'] <- 1
+
+dat <- dat[which(dat$col == 1 |dat$col == 2|dat$col == 3),]
+
+dat1 <- dat[,c(1,2,3,7,8,9,10,11)]
+dat1$jobCompany <- NA
+dat1$jobStartDate <- NA
+dat1$jobEndDate <- NA
+dat1$jobTitle <- NA
+dat1$jobLocation <- NA
+
+dat1[which(dat$col==1),9] <- as.vector(dat[which(dat$col==1),12])
+dat1[which(dat$col==1),10] <- as.vector(dat[which(dat$col==1),13])
+dat1[which(dat$col==1),11] <- as.vector(dat[which(dat$col==1),14])
+dat1[which(dat$col==1),12] <- as.vector(dat[which(dat$col==1),15])
+dat1[which(dat$col==1),13] <- as.vector(dat[which(dat$col==1),16])
+
+dat1[which(dat$col==2),9] <- as.vector(dat[which(dat$col==2),17])
+dat1[which(dat$col==2),10] <- as.vector(dat[which(dat$col==2),18])
+dat1[which(dat$col==2),11] <- as.vector(dat[which(dat$col==2),19])
+dat1[which(dat$col==2),12] <- as.vector(dat[which(dat$col==2),20])
+dat1[which(dat$col==2),13] <- as.vector(dat[which(dat$col==2),21])
+
+dat1[which(dat$col==3),9] <- as.vector(dat[which(dat$col==3),22])
+dat1[which(dat$col==3),10] <- as.vector(dat[which(dat$col==3),23])
+dat1[which(dat$col==3),11] <- as.vector(dat[which(dat$col==3),24])
+dat1[which(dat$col==3),12] <- as.vector(dat[which(dat$col==3),25])
+dat1[which(dat$col==3),13] <- as.vector(dat[which(dat$col==3),26])
+
+# renaming the columns
+colnames(dat1) <- c('linkedin','last_name','first_name','school_most_recent','year_start',
+                    'year_end','major','degree','company_most_recent','work_start','work_end','job_title','job_location')
+
+# reorder
+dat1 <- dat1[order(dat1$year_start),]
+
+# rename location
+dat1$job_location[grep('[A-Z]{2}', dat1$job_location)] <- regmatches(dat1$job_location[grep('[A-Z]{2}', dat1$job_location)], gregexpr('[A-Z]{2}',dat1$job_location[grep('[A-Z]{2}', dat1$job_location)]))
+dat1$job_location[grep('New York', dat1$job_location)] <- 'NY'
+dat1$job_location[grep('Greater New York City Area', dat1$job_location)] <- 'NY'
+dat1$job_location[grep('Boston', dat1$job_location)] <- 'MA'
+dat1$job_location[grep('San Francisco', dat1$job_location)] <- 'CA'
+dat1$job_location[grep('Ohio', dat1$job_location)] <- 'OH'
+dat1$job_location[grep('Dallas', dat1$job_location)] <- 'TX'
+dat1$job_location[grep('seattle', dat1$job_location)] <- 'WA'
+dat1$job_location[grep('Chicago', dat1$job_location)] <- 'IL'
+dat1$job_location[grep('Philadelphia', dat1$job_location)] <- 'PA'
+dat1$job_location[grep('Arizona', dat1$job_location)] <- 'AZ'
+dat1$job_location[grep('Rhode Island', dat1$job_location)] <- 'RI'
+dat1$job_location[grep('Los Angeles', dat1$job_location)] <- 'CA'
+
+# rename job
+dat1$job_title[grep('software', tolower(dat1$job_title))] <- 'Software'
+dat1$job_title[grep('data s', tolower(dat1$job_title))] <- 'Data Science'
+dat1$job_title[grep('data a', tolower(dat1$job_title))] <- 'Data Analytics'
+dat1$job_title[grep('business', tolower(dat1$job_title))] <- 'Business'
+dat1$job_title[grep('asset', tolower(dat1$job_title))] <- 'Finance'
+dat1$job_title[grep('trading', tolower(dat1$job_title))] <- 'Finance'
+dat1$job_title[grep('quan', tolower(dat1$job_title))] <- 'Quantitative Analysis'
+dat1$job_title[grep('research', tolower(dat1$job_title))] <- 'Research Assistant'
+dat1$job_title[grep('consult', tolower(dat1$job_title))] <- 'Consultant'
+dat1$job_title[grep('trader', tolower(dat1$job_title))] <- 'Finance'
+dat1$job_title[grep('big data', tolower(dat1$job_title))] <- 'Big Data'
+dat1$job_title[grep('teaching assistant', tolower(dat1$job_title))] <- 'TA'
+dat1$job_title[grep('actuarial', tolower(dat1$job_title))] <- 'Actuarial'
+dat1$job_title[grep('investment', tolower(dat1$job_title))] <- 'Investment'
+dat1$job_title[grep('machine learning', tolower(dat1$job_title))] <- 'Machine Learning'
+dat1$job_title[grep('finance', tolower(dat1$job_title))] <- 'Finance'
+dat1$job_title[grep('mana', tolower(dat1$job_title))] <- 'Management'
+dat1$job_title[grep('associate', tolower(dat1$job_title))] <- 'Associate'
+dat1$job_title[grep('data visualization', tolower(dat1$job_title))] <- 'Data Visualization'
+dat1$job_title[grep('operations', tolower(dat1$job_title))] <- 'Operations'
+dat1$job_title[grep('grader', tolower(dat1$job_title))] <- 'Grader'
+dat1$job_title[grep('risk', tolower(dat1$job_title))] <- 'Risk Management'
+dat1$job_title[grep('market', tolower(dat1$job_title))] <- 'Business'
+dat1$job_title[grep('edu', tolower(dat1$job_title))] <- 'Education'
+dat1$job_title[grep('course assistant', tolower(dat1$job_title))] <- 'TA'
+dat1$job_title[grep('stat', tolower(dat1$job_title))] <- 'Statistics'
+dat1$job_title[grep('phd', tolower(dat1$job_title))] <- 'PhD'
+dat1$job_title[grep('analyst', tolower(dat1$job_title))] <- 'Analyst'
+dat1$job_title[grep('merger', tolower(dat1$job_title))] <- 'Business'
+
+# removing repeated data
+dat1 <- dat1[!duplicated(dat1$linkedin),]
+
+# removing TA and grader
+dat1 <- dat1[-grep('TA', dat1$job_title),]
+dat1 <- dat1[-grep('Grader', dat1$job_title),]
+# print out
+mat <- rep(NA, nrow(dat1))
+for(i in 1:ncol(dat1)){
+  mat <- cbind(mat,as.vector(as.character(dat1[,i])))
+}
+mat <- as.data.frame(mat)
+mat <- mat[,-1]
+colnames(mat) <- colnames(dat1)
+
+write.csv(mat, file='../output/columbia statistics 2012-2017 processed3.csv')
+
+```
+
+```{r}
+# find the MS in cs
+cucs <- cucs[cucs$job1Company!='',]
+cucsms <- filter(cucs,grepl('ms|master',tolower(cucs$eduDegree)))
+cucsms2012 <- cucsms[cucsms$eduStartDate>=2012,]
+
+unique(as.character(cucsms2012$eduField))
+```
+
+```{r}
+cucsms2012$eduEndDate[grepl('\\.',cucsms2012$eduEndDate)] <- 
+  as.character(floor(as.numeric(cucsms2012$eduEndDate[grepl('\\.',cucsms2012$eduEndDate)])))
+
+cucsms2012$job1StartDate[grepl('\\.',cucsms2012$job1StartDate)] <- 
+  as.character(floor(as.numeric(cucsms2012$job1StartDate[grepl('\\.',cucsms2012$job1StartDate)])))
+cucsms2012$job2StartDate[grepl('\\.',cucsms2012$job2StartDate)] <- 
+  as.character(floor(as.numeric(cucsms2012$job2StartDate[grepl('\\.',cucsms2012$job2StartDate)])))
+cucsms2012$job3StartDate[grepl('\\.',cucsms2012$job3StartDate)] <- 
+  as.character(floor(as.numeric(cucsms2012$job3StartDate[grepl('\\.',cucsms2012$job3StartDate)])))
+
+cucsms2012$eduEndDate[cucsms2012$eduEndDate=='present'] <- '2018'
+
+
+
+cucsms2012$gradJobId <- NA
+cucsms2012$gradJobId[cucsms2012$eduEndDate<=cucsms2012$job3EndDate&
+                       !grepl('columbia',tolower(cucsms2012$job3Company))] <- 3
+cucsms2012$gradJobId[cucsms2012$eduEndDate<=cucsms2012$job3EndDate&
+                       !grepl('columbia',tolower(cucsms2012$job2Company))] <- 2
+cucsms2012$gradJobId[cucsms2012$eduEndDate<=cucsms2012$job3EndDate&
+                       !grepl('columbia',tolower(cucsms2012$job1Company))] <- 1
+
+cucsms2012job <- cucsms2012[!is.na(cucsms2012$gradJobId),]
+
+gradJobId <- as.vector(cucsms2012job$gradJobId)
+
+cucsms2012job$jobCompany <- NA
+cucsms2012job$jobStartDate <- NA
+cucsms2012job$jobEndDate <- NA
+cucsms2012job$jobTitle <- NA
+cucsms2012job$jobLocation <- NA
+
+for (i in 1:3){
+  cucsms2012job$jobCompany[cucsms2012job$gradJobId==i] <- 
+    cucsms2012job[cucsms2012job$gradJobId==i,12+5*(i-1)]
+  cucsms2012job$jobStartDate[cucsms2012job$gradJobId==i] <- 
+    cucsms2012job[cucsms2012job$gradJobId==i,13+5*(i-1)]
+  cucsms2012job$jobEndDate[cucsms2012job$gradJobId==i] <- 
+    cucsms2012job[cucsms2012job$gradJobId==i,14+5*(i-1)]
+  cucsms2012job$jobTitle[cucsms2012job$gradJobId==i] <- 
+    cucsms2012job[cucsms2012job$gradJobId==i,15+5*(i-1)]
+  cucsms2012job$jobLocation[cucsms2012job$gradJobId==i] <- 
+    cucsms2012job[cucsms2012job$gradJobId==i,16+5*(i-1)]
+}
+
+csms <- cucsms2012job[,-(11:26)]
+```
+
+```{r}
+# hand cleaning of the data
+#regmatches(dat1$job_location[grep('[A-Z]{2}', dat1$job_location)], gregexpr('[A-Z]{2}',dat1$job_location[grep('[A-Z]{2}', dat1$job_location)]))
+
+state <- grepl('[A-Z]{2}', csms$jobLocation)
+csms$city <- csms$jobLocation
+
+csms$city <- gsub('area','',tolower(csms$city))
+csms$city <- gsub('city','',tolower(csms$city))
+csms$city <- gsub('greater','',tolower(csms$city))
+csms$city <- gsub('^\\s+','',tolower(csms$city))
+
+csms$city[grep('rochester', tolower(csms$city))] <- 'Rochester'
+csms$city[grep('athen', tolower(csms$city))] <- 'Athen'
+csms$city[grep('new york|watson|water street', tolower(csms$city))] <- 'New York'
+csms$city[grep('boston', tolower(csms$city))] <- 'Boston'
+csms$city[grep('beijing', tolower(csms$city))] <- 'Beijing'
+csms$city[grep('new delhi', tolower(csms$city))] <- 'New Delhi'
+csms$city[grep('kingston', tolower(csms$city))] <- 'Kingston'
+csms$city[grep('bengaluru', tolower(csms$city))] <- 'Bengaluru'
+csms$city[grep('miami', tolower(csms$city))] <- 'Miami'
+csms$city[grep('curitiba', tolower(csms$city))] <- 'Curitiba'
+csms$city[grep('san diego', tolower(csms$city))] <- 'San Diego'
+csms$city[grep('king of prussia', tolower(csms$city))] <- 'Philadelphia'
+csms$city[grep('andheri', tolower(csms$city))] <- 'Mumbai'
+csms$city[grep('kanpur', tolower(csms$city))] <- 'Kanpur'
+csms$city[grep('bangalore', tolower(csms$city))] <- 'Bangalore'
+csms$city[grep('minneapolis', tolower(csms$city))] <- 'Minneapolis'
+csms$city[grep('rider university', tolower(csms$city))] <- 'Trenton'
+
+csms$city <- gsub('\\,.*','',csms$city)
+
+
+unique(csms$city)
+
+csms$jobLocation[state] <-
+  unlist(regmatches(csms$jobLocation,gregexpr('[A-Z]{2}',csms$jobLocation)))
+
+
+csms$jobLocation[grep('new york|watson|water street', tolower(csms$jobLocation))] <- 'NY'
+csms$jobLocation[grep('boston|massachusetts', tolower(csms$jobLocation))] <- 'MA'
+csms$jobLocation[grep('ohio', tolower(csms$jobLocation))] <- 'OH'
+csms$jobLocation[grep('dallas|texas', tolower(csms$jobLocation))] <- 'TX'
+csms$jobLocation[grep('seattle|redmond', tolower(csms$jobLocation))] <- 'WA'
+csms$jobLocation[grep('chicago|illinois', tolower(csms$jobLocation))] <- 'IL'
+csms$jobLocation[grep('philadelphia', tolower(csms$jobLocation))] <- 'PA'
+csms$jobLocation[grep('arizona', tolower(csms$jobLocation))] <- 'AZ'
+csms$jobLocation[grep('rhode island', tolower(csms$jobLocation))] <- 'RI'
+csms$jobLocation[grep('los angeles|california|mountainview|san francisco|menlo park|sunnyvale|mountain view|san diego', tolower(csms$jobLocation))] <- 'CA'
+csms$jobLocation[grep('miami', tolower(csms$jobLocation))] <- 'FL'
+csms$jobLocation[grep('atlanta', tolower(csms$jobLocation))] <- 'GE'
+csms$jobLocation[grep('newark|rider university', tolower(csms$jobLocation))] <- 'NJ'
+csms$jobLocation[grep('china|shanghai|beijing|hong kong|taiwan', tolower(csms$jobLocation))] <-
+  'China'
+csms$jobLocation[grep('india|bangalore|hyderabad|indore|mumbai|andheri', tolower(csms$jobLocation))] <-
+  'India'
+csms$jobLocation[grep('maryland', tolower(csms$jobLocation))] <- 'MD'
+csms$jobLocation[grep('oregon', tolower(csms$jobLocation))] <- 'OR'
+csms$jobLocation[grep('ontario|calgary', tolower(csms$jobLocation))] <- 'Canada'
+csms$jobLocation[grep('ann arbor', tolower(csms$jobLocation))] <- 'MI'
+csms$jobLocation[grep('greece|athens|magoula', tolower(csms$jobLocation))] <- 'Greece'
+csms$jobLocation[grep('minneapolis', tolower(csms$jobLocation))] <- 'MN'
+csms$jobLocation[grep('united kingdom', tolower(csms$jobLocation))] <- 'UK'
+csms$jobLocation[grep('japan', tolower(csms$jobLocation))] <- 'Japan'
+csms$jobLocation[grep('brasil', tolower(csms$jobLocation))] <- 'Brasil'
+csms$jobLocation[grep('virginia', tolower(csms$jobLocation))] <- 'VA'
+csms$jobLocation[grep('singapore', tolower(csms$jobLocation))] <- 'Singapore'
+
+unique(csms$jobLocation)
+
+
+# job title clean
+csms$jobTitle[grep('software|interface|dev|sde|computer|technical|technology|online|swe|programmer|imaging|subject matter expert|structural|system|engineering intern', tolower(csms$jobTitle))] <- 'Software'
+csms$jobTitle[grep('business', tolower(csms$jobTitle))] <- 'Business'
+csms$jobTitle[grep('asset|trading|trader', tolower(csms$jobTitle))] <- 'Finance'
+csms$jobTitle[grep('quan', tolower(csms$jobTitle))] <- 'Quantitative Analysis'
+csms$jobTitle[grep('research|lab', tolower(csms$jobTitle))] <- 'Research'
+csms$jobTitle[grep('consult', tolower(csms$jobTitle))] <- 'Consultant'
+csms$jobTitle[grep('data', tolower(csms$jobTitle))] <- 'Data'
+csms$jobTitle[grep('teaching assistant', tolower(csms$jobTitle))] <- 'TA'
+csms$jobTitle[grep('actuarial', tolower(csms$jobTitle))] <- 'Actuarial'
+csms$jobTitle[grep('investment', tolower(csms$jobTitle))] <- 'Investment'
+csms$jobTitle[grep('machine learning|deep learning', tolower(csms$jobTitle))] <- 'Machine Learning'
+csms$jobTitle[grep('finance', tolower(csms$jobTitle))] <- 'Finance'
+csms$jobTitle[grep('mana', tolower(csms$jobTitle))] <- 'Management'
+csms$jobTitle[grep('associate', tolower(csms$jobTitle))] <- 'Associate'
+csms$jobTitle[grep('data visualization', tolower(csms$jobTitle))] <- 'Data Visualization'
+csms$jobTitle[grep('operations', tolower(csms$jobTitle))] <- 'Operations'
+csms$jobTitle[grep('grader', tolower(csms$jobTitle))] <- 'Grader'
+csms$jobTitle[grep('risk', tolower(csms$jobTitle))] <- 'Risk Management'
+csms$jobTitle[grep('market|member', tolower(csms$jobTitle))] <- 'Business'
+csms$jobTitle[grep('edu', tolower(csms$jobTitle))] <- 'Education'
+csms$jobTitle[grep('course assistant', tolower(csms$jobTitle))] <- 'TA'
+csms$jobTitle[grep('stat|bioinformatician', tolower(csms$jobTitle))] <- 'Statistics'
+csms$jobTitle[grep('phd', tolower(csms$jobTitle))] <- 'PhD'
+csms$jobTitle[grep('analyst|project trainee|imaging|project|analytics', tolower(csms$jobTitle))] <- 'Analyst'
+csms$jobTitle[grep('merger|patent|representative', tolower(csms$jobTitle))] <- 'Business'
+csms$jobTitle[grep('founder|ceo', tolower(csms$jobTitle))] <- 'CEO'
+csms$jobTitle[grep('summer|intern', tolower(csms$jobTitle))] <- 'General Intern'
+
+csms$jobTitle <- gsub('^\\s+','',csms$jobTitle)
+unique(csms$jobTitle)
+```
+
+```{r}
+#write.csv(custatma2012,'custatma2012.csv',sep='\t',row.names = FALSE)
+#write.csv(custatma2012,'../output/custatma2012.csv',row.names = FALSE)
+write.csv(csms,'../output/cucsms2012.csv',row.names = FALSE)
+```

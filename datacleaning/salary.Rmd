@@ -1,0 +1,72 @@
+---
+title: "avg"
+author: 'Yuhan Zha     UNI: yz3284'
+date: "2018/2/18"
+output: html_document
+---
+```{r}
+avg14 <- read.csv("../data/avg14.csv", header = TRUE, stringsAsFactors = FALSE)
+avg15 <- read.csv("../data/avg15.csv", header = TRUE, stringsAsFactors = FALSE)
+avg16 <- read.csv("../data/avg16.csv", header = TRUE, stringsAsFactors = FALSE)
+# Regional Price Parities
+rpp14 <- read.csv("../data/rpp14.csv", header = TRUE)
+rpp15 <- read.csv("../data/rpp15.csv", header = TRUE)
+# Personal Consumption Expenditure(PCE) Price Index
+idx <- c(1.095,1.095, 1.091)
+yr <- c(2014, 2015, 2016)
+```
+
+```{r,warning = FALSE}
+dat14 <- avg14[grep("Computer and Information Systems Managers|Financial Managers|Business and Financial Operations|Business and Financial Operations|Financial Analysts|Personal Financial Advisors|Computer and Mathematical Occupations|Computer and Information Research Scientists|Computer Systems Analysts|Computer Programmers|Software Developers, Applications|Software Developers, Systems Software|Web Developers|Database Administrators|Network and Computer Systems Administrators|Operations Research Analysts|Statisticians|Data Entry Keyers|Statistical Assistants",avg14$OCC_TITLE),]
+dat14$Year <- 2014
+
+dat15 <- avg15[grepl("Computer and Information Systems Managers|Financial Managers|Business and Financial Operations|Business and Financial Operations|Financial Analysts|Personal Financial Advisors|Computer and Mathematical Occupations|Computer and Information Research Scientists|Computer Systems Analysts|Computer Programmers|Software Developers, Applications|Software Developers, Systems Software|Web Developers|Database Administrators|Network and Computer Systems Administrators|Operations Research Analysts|Statisticians|Data Entry Keyers|Statistical Assistants",avg15$OCC_TITLE),]
+dat15$Year <- 2015
+
+dat16 <- avg16[grepl("Computer and Information Systems Managers|Financial Managers|Business and Financial Operations|Business and Financial Operations|Financial Analysts|Personal Financial Advisors|Computer and Mathematical Occupations|Computer and Information Research Scientists|Computer Systems Analysts|Computer Programmers|Software Developers, Applications|Software Developers, Systems Software|Web Developers|Database Administrators|Network and Computer Systems Administrators|Operations Research Analysts|Statisticians|Data Entry Keyers|Statistical Assistants",avg16$OCC_TITLE),]
+dat16$Year <- 2016
+```
+
+```{r, warning = FALSE}
+# Real Personal Income
+# Real personal income = (personal income / RPP) / PCE price index
+
+A_ADJ <- rep(NA,nrow(dat14))
+for (i in 1:nrow(dat14)){
+  for (j in 1:nrow(rpp14)) {
+    if (as.character(dat14$STATE[i]) == as.character(rpp14$GeoName[j])) 
+    {A_ADJ[i] <- round(as.numeric(as.character(dat14$A_MEAN))[i]/(rpp14$X2014[j]/100)/1.091)}
+  }
+}  
+dat14$A_ADJ <- A_ADJ
+
+A_ADJ <- rep(NA,nrow(dat15))
+for (i in 1:nrow(dat15)){
+  for (j in 1:nrow(rpp15)) {
+    if (as.character(dat15$STATE[i]) == as.character(rpp15$GeoName[j])) 
+    {A_ADJ[i] <- round(as.numeric(as.character(dat15$A_MEAN))[i]/(rpp15$X2015[j]/100)/1.095)}
+  }
+}  
+dat15$A_ADJ <- A_ADJ
+
+A_ADJ <- rep(NA,nrow(dat16))
+for (i in 1:nrow(dat16)){
+  for (j in 1:nrow(rpp15)) {
+    if (as.character(dat16$STATE[i]) == as.character(rpp15$GeoName[j])) 
+    {A_ADJ[i] <- round(as.numeric(as.character(dat16$A_MEAN))[i]/(rpp15$X2015[j]/100)/1.095)}
+  }
+}  
+dat16$A_ADJ <- A_ADJ
+```
+
+
+```{r}
+# Final data
+dat <- rbind(dat14, dat15, dat16)
+dat$A_MEAN <- as.numeric(dat$A_MEAN)
+dat$A_ADJ <- as.numeric(dat$A_ADJ)
+dat$STATE <- as.factor(dat$STATE)
+write.csv(dat, "../output/dat_salary")
+```
+
+
