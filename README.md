@@ -1,8 +1,6 @@
 # Project 2: Open Data App using RShiny - Where did our alumni go?
 Term: Spring 2018
 
-In this second project of GU4243/GR5243 Applied Data Science, we develop an *Exploratory Data Analysis and Visualization* shiny app on a topic of your choice using U.S. government open data released on the [data.gov](https://data.gov/) website. See [Project 2 Description](doc/project2_desc.md) for more details.  
-
 + **Group 10 - team members:**
 	+ Leo Lam (lkl2129)
 	+ Yuhan Zha (yz3284)
@@ -17,7 +15,6 @@ https://leolam.shinyapps.io/Rshiny/
 
 In this project, we provided the job distribution, company name, and job location of the former M.A. students in Statistics at Columbia University as well as the average income and unemployment rate in each state aiming to provide current students more options in choosing their future career path. 
 
-![screenshot](doc/Screenshot.png)
 
 ## What is the Business Problem Solved:
 
@@ -92,10 +89,10 @@ Career path is often the hardest decision to make as a student. In fact, many of
 Team members: Yanjun Lin, Ziyu Chen, Yuhan Zha, Leo Lam
 
 All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement. 
-	+ Yanjun Lin: Scraper development, scrapping data from linkedin, data preprocessing, R Shiny UI design;
-	+ Ziyu Chen: R Shiny 3D connection map, presentation, data preprocessing, scrapping data from linkedin, R Shiny UI design;
-	+ Yuhan Zha: R Shiny heat map, bar plot, data collection and data preprocessing for income, R Shiny UI design;
-	+ Leo Lam: R Shiny pie chart, data table, data preprocessing, R Shiny UI design.
++ Yanjun Lin: Scraper development, scrapping data from linkedin, data preprocessing, R Shiny UI design;
++ Ziyu Chen: R Shiny 3D connection map, presentation, data preprocessing, scrapping data from linkedin, R Shiny UI design;
++ Yuhan Zha: R Shiny heat map, bar plot, data collection and data preprocessing for income, R Shiny UI design;
++ Leo Lam: R Shiny pie chart, data table, data preprocessing, R Shiny UI design.
 
 Following [suggestions](https://github.com/TZstatsADS/Spring2018-Project2-Group10). This folder is orgarnized as follows.
 
