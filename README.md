@@ -61,16 +61,16 @@ Career path is often the hardest decision to make as a student. In fact, many of
 
 + **Our App:**
 	+ **Introduction: Project Goal**
-![intro](doc/intro.png)
+![intro](lib/intro.png)
 	+ **Unemployment Rate: Unemployment rate by states and years**
-![unemploy](doc/unemploy.png)
+![unemploy](lib/unemploy.png)
 	+ **Average Income: Average income by states**
-![avg_income1](doc/avg_income1.png)
-![avg_income2](doc/avg_income2.png)
+![avg_income1](lib/avg_income1.png)
+![avg_income2](lib/avg_income2.png)
 	+ **Job Distribution: Job distribution by states and job titles**
-![piechart](doc/piechart.png)
+![piechart](lib/piechart.png)
 	+ **Connective Map: Map showing where our alumni in Statistics and Computer Science went from Columbia**
-![connectivemap](doc/connectivemap.png)
+![connectivemap](lib/connectivemap.png)
 	
 
 
