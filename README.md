@@ -57,7 +57,8 @@ Career path is often the hardest decision to make as a student. In fact, many of
 			+ Personal consumption expenditures price index (PCE) price index is a United States-wide indicator of the average increase in prices for all domestic personal consumption
 		+ Job Distribution: We used pie chart and table to show the job title and location distribution of our alumni.
 		+ 3D Connection Map: An earth that shows the job destination of alumni in both MA Statistics and MS Computer Science program, to show the difference between the two programs.
-	
+	+ **Privacy protection:**
+		+ For privacy protection reason, we mask out the information like: linkedin profile url, names in our linkedin data set.
 
 + **Our App:**
 	+ **Introduction: Project Goal**
